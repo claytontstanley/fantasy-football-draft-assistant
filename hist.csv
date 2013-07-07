@@ -1,0 +1,6 @@
+name,rushYds,rushTds,recYds,recTds,passYds,passTds,kickFgs
+rush bar,100,1,0,0,0,0,0
+rec baz,0,0,100,2,0,0,0
+pass worm,0,0,0,0,100,1,0
+kick bee,0,0,0,0,0,0,10
+
