@@ -20,7 +20,7 @@
         collect pred-player))
 
 (defclass player ()
-  ((picked :accessor picked :initarg :picked)))
+  ())
   
 (defclass rank-player (player)
   ((rank :accessor rank :initarg :rank)
@@ -29,6 +29,7 @@
 
 (defclass pred-player (player)
   ((name :accessor name :initarg :name)
+   (drafted-p :accessor drafted-p :initarg :drafted-p :initform nil)
    (type :accessor type :initarg :type)
    (disabled-p :accessor disabled-p :initarg :disabled-p :initform nil)
    (rank :accessor rank :initarg :rank)))
@@ -54,7 +55,7 @@
                                  :type (intern (string-upcase type))
                                  :name name))))
 
-(defparameter *num-teams* 15)
+(defparameter *num-teams* 3)
 (defparameter *num-drafts* 12)
 
 (defclass draft-window (window)
@@ -83,7 +84,7 @@
                     append (loop for i from 0 below *num-drafts*
                                  for x = (* i dx)
                                  for y-off = (+ y 
-                                                (* (mod i 2) (/ dy 2.5)))
+                                                (* (mod i 2) 30))
                                  with nil-picks = (make-nil-picks)
                                  collect (make-instance
                                            'draft-pick-view
@@ -91,7 +92,7 @@
                                            :default-item 1
                                            :team-num team-num
                                            :menu-items (mapcar #'as-menu-item (append nil-picks *pred*))
-                                           :view-size (make-point (* dx 2) 50)
+                                           :view-size (make-point (* dx 2) 25)
                                            )))))
         (apply #'add-subviews win views)))))
 
@@ -114,8 +115,15 @@
   (make-instance
     'draft-pick-item
     :pred-player item
-    :menu-item-title (print-pred item nil)))
+    :menu-item-title (print-pred item nil)
+    :action (lambda () (update-window (get-draft-win)))))
 
+(defmethod update-window ((win draft-window))
+  (dolist (player *pred*)
+    (setf (drafted-p player) nil))
+  (loop for drafted-player in (get-all-drafted win 'all)
+        do (setf (drafted-p drafted-player) t)))
+  
 (defmethod get-draft-pick-views ((win draft-window))
   (get-views-of win (find-class 'draft-pick-view)))
 
@@ -148,8 +156,14 @@
 (defmethod get-my-drafted ((win draft-window) type)
   (remove-if-not #'my-player-p (get-all-drafted win type)))
 
+(defmethod get-their-drafted ((win draft-window) type)
+  (remove-if-not #'their-player-p (get-all-drafted win type)))
+
 (defmethod my-player-p ((pred-player pred-player))
   (eq (team-num (get-draft-pick-view pred-player)) *my-team-num*))
+
+(defmethod their-player-p ((pred-player pred-player))
+  (not (my-player-p pred-player)))
 
 (defclass choose-window (window)
   ()
@@ -244,32 +258,65 @@
   (let ((constraints (generate-constraints draft-win (drafting-starters-p draft-win))))
     (let ((choice-types (get-choice-types constraints)))
       (let ((choices (get-ranking *pred* choice-types)))
-          (remove-if #'disabled-p choices)))))
+        (remove-if #'drafted-p
+                   (remove-if #'disabled-p choices))))))
 
 (defmethod generate-constraints ((draft-win draft-window) (drafting-starters-p (eql t)))
-  (list
-    (make-constraint 'qb (lambda () (= (length (get-my-drafted draft-win 'qb)) 1))) 
-    (make-constraint 'rb (lambda () (= (length (get-my-drafted draft-win 'rb)) 2))) 
-    (make-constraint 'wr (lambda () (= (length (get-my-drafted draft-win 'wr)) 3))) 
-    (make-constraint 'k (lambda () (= (length (get-my-drafted draft-win 'k)) 1)))   
-    (make-constraint 'k (lambda () (and (eq (length (get-all-drafted draft-win 'k))
-                                            (- *num-teams* 1))
-                                        (free-pick-vail draft-win))))
-    (make-constraint 'qb (lambda () (and (eq (length (get-all-drafted draft-win 'qb))
-                                             (- *num-teams* 1))
-                                         (free-pick-vail draft-win))))
-    (make-constraint 'rb (lambda () (and (eq (* 2 (length (get-all-drafted draft-win 'rb)))
-                                             (- *num-teams* 1))
-                                         (free-pick-vail draft-win))))
-    (make-constraint 'wr (lambda () (and (eq (* 3 (length (get-all-drafted draft-win 'wr)))
-                                             (- *num-teams* 1))
-                                         (free-pick-vail draft-win))))))
+  (append
+    (loop for type in *all-types*
+          collect (make-constraint type (let ((type type))
+                                          (lambda ()
+                                            (all-mine-picked draft-win type)))))
+    (loop for type in *all-types*
+          collect (make-constraint type (let ((type type))
+                                          (lambda ()
+                                            (and (all-but-mine-picked draft-win type)
+                                                 (free-pick-vail draft-win))))))))
+
+(defmethod all-mine-picked ((win draft-window) type)
+  (= (length (get-my-drafted win type))
+     (get-num-picks-per-team type (drafting-starters-p win))))
+
+(defmethod get-num-picks-per-team ((type symbol) (drafting-starters-p (eql t)))
+  (ecase type
+    (qb 1)
+    (rb 2)
+    (wr 3)
+    (k 1)))
+
+(defmethod get-num-picks-per-team ((type symbol) (drafting-starters-p (eql nil)))
+  (ecase type
+    (qb 2)
+    (rb 4)
+    (wr 7) ;+1 on wr, so that both rbs and wrs are present in final draft round
+    (k 1)))
+
+(defmethod all-but-mine-picked ((win draft-window) type)
+  (let ((num-picks-per-team (get-num-picks-per-team type (drafting-starters-p win))))
+    (eq (length (get-their-drafted win type))
+        (* num-picks-per-team (- *num-teams* 1)))))
 
 (defmethod generate-constraints ((draft-win draft-window) (drafting-starters-p (eql nil)))
-    ; one qb in last 5 rounds
-    ; two rbs in last 5 rounds
-    ; two wrs in last 5 rounds
-    )
+  (loop for type in *all-types*
+        collect (make-constraint type (let ((type type))
+                                        (lambda ()
+                                          (all-mine-picked draft-win type))))))
+
+#|
+(loop for type in *all-types*
+      collect (make-constraint 'by (let ((type type))
+                                     (lambda ()
+                                       (get-filled-by-weeks win type)))))
+type by-week
+ |#                                      
+
+(defmethod free-pick-vail ((win draft-window))
+  (notevery (lambda (type)
+              (all-but-mine-picked win type))
+            (remove-if (lambda (type)
+                         (all-mine-picked win type))
+                       *all-types*)))
+
 (defmethod drafting-starters-p ((win draft-window))
   (<= (get-draft-round win) *num-starters*))
 
@@ -284,10 +331,9 @@
 
 (defmethod get-choice-types ((constraints list))
   (let ((constraint-types
-        (remove-duplicates
-          (loop for constraint in constraints
-                when (funcall constraint) collect it))))
+          (remove-duplicates (remove-if #'null (mapcar #'funcall constraints)))))
     (set-difference *all-types* constraint-types)))
+
 
 (defmethod get-ranking ((rank list) (choice-types list))
   (sort 
