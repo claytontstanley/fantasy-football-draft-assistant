@@ -1,5 +1,8 @@
-name,type,rank
-pass worm,qb,1
-rush bar,rb,2
-rec baz,wr,3
-kick bee,k,4
+name,type,rank,by-week
+pass worm,qb,1,1
+rush bar,rb,2,2
+rec baz,wr,3,3
+kick bee,k,4,4
+worm2,qb,5,2
+bar2,rb,6,3
+bar3,rb,6,4

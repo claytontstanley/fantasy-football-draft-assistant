@@ -3,3 +3,6 @@ rush bar,rb,100,1,0,0,0,0,0
 rec baz,wr,0,0,100,2,0,0,0
 pass worm,qb,0,0,0,0,100,1,0
 kick bee,k,0,0,0,0,0,0,10
+rush bar2,rb,100,1,0,0,0,0,0
+rush bar3,rb,100,1,0,0,0,0,0
+pass worm2,qb,0,0,0,0,100,1,0
