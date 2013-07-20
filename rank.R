@@ -27,7 +27,7 @@ generateHist = function() {
 	teFrm = read.csv(str_c(PATH, "/hist-tes.csv"))
 	teHistFrm = with(teFrm, data.frame(name=Name, type='te', recYds=Yds, recTds=TD+TD.1))
     histFrm = rbind.fill(rbHistFrm, qbHistFrm, kHistFrm, wrHistFrm, teHistFrm)
-    # converts all factors to numeric; got this linenoise from here: http://stackoverflow.com/questions/8596466/r-change-all-columns-of-type-factor-to-numeric
+    # converts all factors to numeric; got this linenoise from here: http://stackoverflow.com/questions/8596466
     histFrm$name = as.character(histFrm$name)
     histFrm$type = as.character(histFrm$type)
     histFrm = modifyList(histFrm, lapply(histFrm[, sapply(histFrm, is.factor)], function(x) as.numeric(as.character(x))))
