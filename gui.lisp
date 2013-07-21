@@ -7,8 +7,8 @@
 (ql:quickload "parse-number")
 
 (defparameter *path* (directory-namestring *load-truename*))
-(defparameter *rank-csv* (format nil "~a~a" *path* "score.csv"))
-(defparameter *pred-csv* (format nil "~a~a" *path* "pred.csv"))
+(defparameter *rank-csv* (format nil "~a~a" *path* "score-real.csv"))
+(defparameter *pred-csv* (format nil "~a~a" *path* "pred-real.csv"))
 (defparameter *my-team-num* 1)
 (defparameter *all-types* (list 'qb 'rb 'k 'wr))
 (defparameter *num-starters* 7)
@@ -69,10 +69,14 @@
 (defclass rank-player (player)
   ())
 
-(defclass nil-player (pred-player)
+(defclass unlisted-player (pred-player)
   ((by-week :initform 0)
    (rank :initform 0)
    (score :initform 0)))
+
+(defclass np-player (unlisted-player)
+  ((display-type :initform 'np)
+   (name :initform "")))
 
 (defmethod print-pred ((item pred-player) strm)
   (with-accessors ((name name) (display-type display-type) (rank rank) (score score) (by-week by-week)) item
@@ -89,7 +93,7 @@
 
 (defun load-pred-csv (csv)
   (let ((csv (cl-csv:read-csv (file-string csv))))
-    (assert (equalp (first csv) (list "name" "displayType" "rank" "by-week")))
+    (assert (equalp (first csv) (list "name" "displayType" "rank" "byWeek")))
     (loop for (name display-type nil by-week) in (rest csv)
           collect (make-instance 'pred-player
                                  :display-type (intern (string-upcase display-type))
@@ -136,11 +140,9 @@
 
 (defun make-nil-picks ()
   (list*
-    (make-instance 'nil-player
-                   :display-type 'np
-                   :name "")
+    (make-instance 'np-player)
     (loop for type in *all-types* 
-          collect (make-instance 'nil-player
+          collect (make-instance 'unlisted-player
                                  :display-type type
                                  :name "not present"))))
 
@@ -192,11 +194,14 @@
   (pred-player (easygui::menu-selection view)))
 
 (defmethod get-all-drafted ((win draft-window) (type (eql 'all)))
-  (remove-if #'nil-player-p
+  (remove-if #'np-player-p
              (mapcar #'get-pred-player (get-draft-pick-views win))))
 
-(defmethod nil-player-p ((pred-player pred-player)) 
-  (null (type pred-player)))
+(defmethod np-player-p ((pred-player np-player)) 
+  t)
+
+(defmethod np-player-p ((pred-player pred-player))
+  nil)
 
 (defmethod get-all-drafted ((win draft-window) type)
   (remove-if-not (lambda (x)
@@ -396,7 +401,7 @@
     (assert (every (lambda (player)
                      (eq (type player) type))
                    players))
-    (let ((players (remove-if #'nil-player-p players)))
+    (let ((players (remove-if #'np-player-p players)))
       (loop for by-week in *by-weeks*
             for avail-players = (remove-if (lambda (player)
                                              (= (by-week player) by-week)) players)
@@ -435,6 +440,4 @@
 (make-instance 'draft-window)
 
 |#
-
-
 
