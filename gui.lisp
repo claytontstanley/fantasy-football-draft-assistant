@@ -8,7 +8,7 @@
 
 (defparameter *path* (directory-namestring *load-truename*))
 (defparameter *rank-csv* (format nil "~a~a" *path* "score.csv"))
-(defparameter *pred-csv* (format nil "~a~a" *path* "predict.csv"))
+(defparameter *pred-csv* (format nil "~a~a" *path* "pred.csv"))
 (defparameter *my-team-num* 1)
 (defparameter *all-types* (list 'qb 'rb 'k 'wr))
 (defparameter *num-starters* 7)
