@@ -10,16 +10,17 @@
 (defparameter *rank-csv* (format nil "~a~a" *path* "score-real.csv"))
 (defparameter *pred-csv* (format nil "~a~a" *path* "pred-real.csv"))
 (defparameter *my-team-num* 1)
-(defparameter *all-types* (list 'qb 'rb 'k 'wr))
-(defparameter *num-starters* 7)
+(defparameter *all-types* (list 'qb 'rb 'k 'wr 'df))
+(defparameter *num-starters* nil) 
 (defparameter *by-weeks* (list 1 2 3 4 5 6 7 8 9 10))
 (defparameter *num-teams* 3)
-(defparameter *num-drafts* 12)
+(defparameter *num-drafts* 14)
 (defparameter *rank* nil)
 (defparameter *pred* nil)
 (defparameter *display-font* (list "Courier" 12))
 
 (defun initialize-data ()
+  (setf *num-starters* (reduce #'+ (mapcar (lambda (type) (get-num-picks-per-team type t)) *all-types*)))
   (setf *pred* (load-pred-csv *pred-csv*))
   (setf *rank* (load-rank-csv *rank-csv*))
   (setf *pred* (rank-pred *pred* *rank*)))
@@ -80,7 +81,7 @@
 
 (defmethod print-pred ((item pred-player) strm)
   (with-accessors ((name name) (display-type display-type) (rank rank) (score score) (by-week by-week)) item
-    (format strm "~3a|~3a|~1a, ~2a, ~a" rank (floor score) by-week display-type name)))
+    (format strm "~3a|~3a|~2a, ~2a, ~a" rank (floor score) by-week display-type name)))
 
 (defun load-rank-csv (csv)
   (let ((csv (cl-csv:read-csv (file-string csv))))
@@ -352,6 +353,7 @@
     (qb 1)
     (rb 2)
     (wr 3)
+    (df 1)
     (k 1)))
 
 (defmethod get-num-picks-per-team ((type symbol) (drafting-starters-p (eql nil)))
@@ -359,6 +361,7 @@
     (qb 2)
     (rb 5) ;+1 on rb, so that both rbs and wrs are present in final draft round
     (wr 7) ;+1 on wr, so that both rbs and wrs are present in final draft round
+    (df 2)
     (k 1)))
 
 (defmethod all-but-mine-picked ((win draft-window) type)
