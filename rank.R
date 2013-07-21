@@ -12,7 +12,7 @@ generateScore = function() {
 
 	histFrm
 
-	write.csv(histFrm, str_c(PATH, "/score.csv"), row.names=F)
+	write.csv(histFrm, str_c(PATH, "/score-real.csv"), row.names=F)
 }
 
 generateHist = function() {
@@ -34,9 +34,20 @@ generateHist = function() {
     # converts all factors to numeric: http://stackoverflow.com/questions/8596466
     histFrm = modifyList(histFrm, lapply(histFrm[, sapply(histFrm, is.factor)], function(x) as.numeric(as.character(x))))
     histFrm[is.na(histFrm)] = 0
-    foo <<- histFrm
+    foo = histFrm
 	write.csv(histFrm, str_c(PATH, "/hist-real.csv"), row.names=F)
+}
+
+generatePred = function() {
+	readPred = function(displayType) {
+		frm = read.csv(str_c(PATH, "/pred-", displayType, "s.csv"))
+		prefFrm = with(frm, data.frame(name=Player, displayType=displayType, rank=Rank, byWeek=Bye))
+		prefFrm
+	}
+	predFrm = rbind.fill(lapply(c('qb', 'rb', 'wr', 'te', 'k'), readPred))
+	write.csv(predFrm, str_c(PATH, "/pred-real.csv"), row.names=F)
 }
 	
 generateHist()
 generateScore()
+generatePred()
