@@ -4,6 +4,7 @@
 
 (ql:quickload "cl-csv")
 (ql:quickload "iterate")
+(ql:quickload "parse-number")
 
 (defparameter *path* (directory-namestring *load-truename*))
 (defparameter *rank-csv* (format nil "~a~a" *path* "score.csv"))
@@ -14,16 +15,22 @@
 (defparameter *by-weeks* (list 1 2 3 4 5 6 7 8 9 10))
 (defparameter *num-teams* 3)
 (defparameter *num-drafts* 12)
-(defparameter *rank* (load-rank-csv *rank-csv*))
-(defparameter *pred* (load-pred-csv *pred-csv*))
+(defparameter *rank* nil)
+(defparameter *pred* nil)
+(defparameter *display-font* (list "Courier" 12))
 
-(setf *pred* (rank-pred *pred* *rank*))
+(defun initialize-data ()
+  (setf *pred* (load-pred-csv *pred-csv*))
+  (setf *rank* (load-rank-csv *rank-csv*))
+  (setf *pred* (rank-pred *pred* *rank*)))
 
 (defmethod rank-pred ((pred list) (rank list))
   (let ((pred
           (loop for rank-player in rank
+                for pred-player = (pop (gethash (display-type rank-player) pred-hash))
                 with pred-hash = (make-pred-hash pred)
-                when (pop (gethash (type rank-player) pred-hash)) collect it into result
+                when pred-player do (setf (score pred-player) (score rank-player))
+                when pred-player collect it into result
                 finally (assert (= (length result) (length pred)))
                 finally (return result))))
     (loop for pred-player in pred
@@ -34,47 +41,58 @@
 (defmethod make-pred-hash ((pred list))
   (let ((pred-hash (make-hash-table :test #'eq)))
     (loop for pred-player in pred
-          do (push-to-end pred-player (gethash (type pred-player) pred-hash)))
+          do (push-to-end pred-player (gethash (display-type pred-player) pred-hash)))
     pred-hash))
 
 (defclass player ()
-  ())
+ ((type :accessor type)
+  (score :accessor score :initarg :score)
+  (rank :accessor rank :initarg :rank)
+  (display-type :accessor display-type :initarg :display-type)))
 
-(defclass rank-player (player)
-  ((rank :accessor rank :initarg :rank)
-   (type :accessor type :initarg :type)
-   (score :accessor score :initarg :score)))
+(defmethod initialize-instance :after ((player player) &key)
+  (assert (not (slot-boundp player 'type)))
+  (setf (type player) (as-type (display-type player))))
+
+(defmethod as-type ((type (eql 'te)))
+  'wr)
+
+(defmethod as-type ((type symbol))
+  type)
 
 (defclass pred-player (player)
   ((name :accessor name :initarg :name)
    (drafted-p :accessor drafted-p :initarg :drafted-p :initform nil)
-   (type :accessor type :initarg :type)
    (disabled-p :accessor disabled-p :initarg :disabled-p :initform nil)
-   (by-week :accessor by-week :initarg :by-week)
-   (rank :accessor rank :initarg :rank)))
+   (by-week :accessor by-week :initarg :by-week)))
+
+(defclass rank-player (player)
+  ())
 
 (defclass nil-player (pred-player)
-  ((by-week :initform 0)))
+  ((by-week :initform 0)
+   (rank :initform 0)
+   (score :initform 0)))
 
 (defmethod print-pred ((item pred-player) strm)
-  (with-accessors ((name name) (type type) (rank rank) (by-week by-week)) item
-    (format strm "~a, ~a, ~a, ~a" rank type name by-week)))
+  (with-accessors ((name name) (display-type display-type) (rank rank) (score score) (by-week by-week)) item
+    (format strm "~3a|~3a|~1a, ~2a, ~a" rank (floor score) by-week display-type name)))
 
 (defun load-rank-csv (csv)
   (let ((csv (cl-csv:read-csv (file-string csv))))
-    (assert (equalp (first csv) (list "name" "type" "rushYds" "rushTds" "recYds" "recTds" "passYds" "passTds" "kickFgs" "score" "rank")))
-    (loop for (nil type nil nil nil nil nil nil nil score rank) in (rest csv)
+    (assert (equalp (first csv) (list "name" "displayType" "rushYds" "rushTds" "recYds" "recTds" "passYds" "passTds" "fgs0.20" "fgs20.30" "fgs30.40" "fgs40.50" "fgs50.inf" "score" "rank")))
+    (loop for (nil display-type nil nil nil nil nil nil nil nil nil nil nil score rank) in (rest csv)
           collect (make-instance 'rank-player
-                                 :score score
-                                 :type (intern (string-upcase type))
+                                 :score (parse-number:parse-number score)
+                                 :display-type (intern (string-upcase display-type))
                                  :rank rank))))
 
 (defun load-pred-csv (csv)
   (let ((csv (cl-csv:read-csv (file-string csv))))
-    (assert (equalp (first csv) (list "name" "type" "rank" "by-week")))
-    (loop for (name type nil by-week) in (rest csv)
+    (assert (equalp (first csv) (list "name" "displayType" "rank" "by-week")))
+    (loop for (name display-type nil by-week) in (rest csv)
           collect (make-instance 'pred-player
-                                 :type (intern (string-upcase type))
+                                 :display-type (intern (string-upcase display-type))
                                  :name name
                                  :by-week (parse-integer by-week)))))
 
@@ -119,13 +137,11 @@
 (defun make-nil-picks ()
   (list*
     (make-instance 'nil-player
-                   :type nil
-                   :name ""
-                   :rank 0)
+                   :display-type 'np
+                   :name "")
     (loop for type in *all-types* 
           collect (make-instance 'nil-player
-                                 :type type
-                                 :rank 0
+                                 :display-type type
                                  :name "not present"))))
 
 (defclass draft-pick-item (menu-item)
@@ -137,6 +153,20 @@
     :pred-player item
     :menu-item-title (print-pred item nil)
     :action (lambda () (update-window (get-draft-win)))))
+
+; Using #/setFont: does not update the font for the chosen item in the menu view, so the more
+; complex setAttributedTitle: method is used instead: http://stackoverflow.com/questions/13458963/how-to-set-the-font-of-nsmenu-nsmenuitems
+; This method shows the correct font for all of them menu items contained in the view
+(defmethod initialize-instance :after ((item draft-pick-item) &key)
+  (let ((attributes (#/dictionaryWithObjectsAndKeys: ns:ns-mutable-dictionary
+                     (getf (parse-mcl-initarg :view-font *display-font*) :view-font) #$NSFontAttributeName
+                     ccl:+null-ptr+)))
+    (let ((attributed-title
+            (#/initWithString:attributes: (#/alloc ns:ns-mutable-attributed-string)
+             (#/title (cocoa-ref item))
+             attributes)))
+      (#/setAttributedTitle: (cocoa-ref item)
+       attributed-title))))
 
 (defmethod update-window ((win draft-window))
   (dolist (player *pred*)
@@ -200,7 +230,12 @@
     (make-instance 'disable-button)
     (make-instance 'enable-button)))
 
-(defclass choose-sequence (sequence-dialog-item)
+(defclass draft-sequence (sequence-dialog-item)
+  ()
+  (:default-initargs
+    :view-font *display-font*))
+
+(defclass choose-sequence (draft-sequence)
   ()
   (:default-initargs
     :view-size (make-point (/ 1024 3) 768)
@@ -209,7 +244,7 @@
     :view-nick-name :cs
     :view-position (make-point 0 0)))
 
-(defclass disable-sequence (sequence-dialog-item)
+(defclass disable-sequence (draft-sequence)
   ()
   (:default-initargs
     :view-size (make-point (/ 1024 3) 768)
@@ -353,7 +388,10 @@
          (loop for type in *all-types*
                collect (get-filled-by-weeks (get-my-drafted draft-win type)))))
 
-(defmethod get-filled-by-weeks ((players list))
+(defmethod get-filled-by-weeks ((players null))
+  ())
+
+(defmethod get-filled-by-weeks ((players cons))
   (let ((type (type (first players))))
     (assert (every (lambda (player)
                      (eq (type player) type))
@@ -388,6 +426,8 @@
     (remove-if-not (lambda (rank-player)
                      (member (type rank-player) choice-types))
                    rank)))
+
+(initialize-data)
 
 #|
 (make-instance 'choose-window)
