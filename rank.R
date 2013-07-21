@@ -44,7 +44,7 @@ generatePred = function() {
 		prefFrm = with(frm, data.frame(name=Player, displayType=displayType, rank=Rank, byWeek=Bye))
 		prefFrm
 	}
-	predFrm = rbind.fill(lapply(c('qb', 'rb', 'wr', 'te', 'k'), readPred))
+	predFrm = rbind.fill(lapply(c('qb', 'rb', 'wr', 'te', 'k', 'df'), readPred))
 	write.csv(predFrm, str_c(PATH, "/pred-real.csv"), row.names=F)
 }
 	
