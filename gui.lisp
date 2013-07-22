@@ -4,7 +4,6 @@
 
 (ql:quickload "cl-csv")
 (ql:quickload "parse-number")
-
 (require :ccl-simple-view)
 (require :experiment-window4)
 
@@ -20,11 +19,12 @@
 (defparameter *pred-csv* (format nil "~a~a" *path* "pred-real.csv"))
 (defparameter *my-team-num* 1)
 (defparameter *all-types* (list 'qb 'rb 'k 'wr 'df))
-(defparameter *num-teams* 3)
+(defparameter *num-teams* 15)
 (defparameter *num-drafts* 14)
 (defparameter *display-font* (list "Courier" 12))
 
 (defun initialize-data ()
+  (ccl::create-autorelease-pool) ; Ensures this runs on the executing thread, not some slime compile thread
   (setf *num-starters* (reduce #'+ (mapcar (lambda (type) (get-num-picks-per-team type t)) *all-types*)))
   (setf *pred* (load-pred-csv *pred-csv*))
   (setf *rank* (load-rank-csv *rank-csv*))
@@ -456,11 +456,13 @@
                      (member (type rank-player) choice-types))
                    rank)))
 
-(initialize-data)
-(save-data)
+(defun run-draft ()
+  (initialize-data)
+  (save-data)
+  (make-instance 'choose-window)
+  (make-instance 'draft-window))
 
 #|
-(make-instance 'choose-window)
-(make-instance 'draft-window)
+(run-draft)
 |#
 
