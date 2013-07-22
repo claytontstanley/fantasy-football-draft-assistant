@@ -344,7 +344,7 @@
               (remove-if #'drafted-p
                          (remove-if #'disabled-p
                                     (reduce #'intersection choices)))))
-        (sort-players filtered-choices)))))
+        (sort filtered-choices #'< :key #'rank)))))
 
 (defmethod generate-constraints ((draft-win draft-window) (drafting-starters-p (eql t)))
   (append
@@ -446,15 +446,6 @@
 (defmethod get-draft-round ((win draft-window))
   (ceiling (/ (+ (length (get-all-drafted win 'all)) 1)
               *num-teams*)))
-
-(defmethod sort-players ((players list))
-  (sort players #'< :key #'rank))
-
-(defmethod get-ranking ((rank list) (choice-types list))
-  (sort-players
-    (remove-if-not (lambda (rank-player)
-                     (member (type rank-player) choice-types))
-                   rank)))
 
 (defun run-draft ()
   (initialize-data)
