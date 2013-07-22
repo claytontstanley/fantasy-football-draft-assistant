@@ -27,9 +27,9 @@
 
 (defmethod rank-pred ((pred list) (rank list))
   (let ((pred
-          (loop for rank-player in rank
+          (loop with pred-hash = (make-pred-hash pred)
+                for rank-player in rank
                 for pred-player = (pop (gethash (display-type rank-player) pred-hash))
-                with pred-hash = (make-pred-hash pred)
                 when pred-player do (setf (score pred-player) (score rank-player))
                 when pred-player collect it into result
                 finally (assert (= (length result) (length pred)))
