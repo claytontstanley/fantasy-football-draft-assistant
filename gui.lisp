@@ -346,6 +346,13 @@
                                     (reduce #'intersection choices)))))
         (sort filtered-choices #'< :key #'rank)))))
 
+(defmethod drafting-starters-p ((win draft-window))
+  (<= (get-draft-round win) *num-starters*))
+
+(defmethod get-draft-round ((win draft-window))
+  (ceiling (/ (+ (length (get-all-drafted win 'all)) 1)
+              *num-teams*)))
+
 (defmethod generate-constraints ((draft-win draft-window) (drafting-starters-p (eql t)))
   (append
     (loop for type in *all-types*
@@ -364,9 +371,21 @@
                                      (eq (type player) type)) players)
                         players))))))
 
+(defmethod free-pick-vail ((win draft-window))
+  (notevery (lambda (type)
+              (all-but-mine-picked win type))
+            (remove-if (lambda (type)
+                         (all-mine-picked win type))
+                       *all-types*)))
+
 (defmethod all-mine-picked ((win draft-window) type)
   (= (length (get-my-drafted win type))
      (get-num-picks-per-team type (drafting-starters-p win))))
+
+(defmethod all-but-mine-picked ((win draft-window) type)
+  (let ((num-picks-per-team (get-num-picks-per-team type (drafting-starters-p win))))
+    (eq (length (get-their-drafted win type))
+        (* num-picks-per-team (- *num-teams* 1)))))
 
 (defmethod get-num-picks-per-team ((type symbol) (drafting-starters-p (eql t)))
   (ecase type
@@ -383,11 +402,6 @@
     (wr 4) 
     (df 2)
     (k 2)))
-
-(defmethod all-but-mine-picked ((win draft-window) type)
-  (let ((num-picks-per-team (get-num-picks-per-team type (drafting-starters-p win))))
-    (eq (length (get-their-drafted win type))
-        (* num-picks-per-team (- *num-teams* 1)))))
 
 (defmethod generate-constraints ((draft-win draft-window) (drafting-starters-p (eql nil)))
   (append
@@ -432,20 +446,6 @@
 
 (defmethod get-unfilled-by-weeks ((players list))
   (set-difference *by-weeks* (get-filled-by-weeks players)))
-
-(defmethod free-pick-vail ((win draft-window))
-  (notevery (lambda (type)
-              (all-but-mine-picked win type))
-            (remove-if (lambda (type)
-                         (all-mine-picked win type))
-                       *all-types*)))
-
-(defmethod drafting-starters-p ((win draft-window))
-  (<= (get-draft-round win) *num-starters*))
-
-(defmethod get-draft-round ((win draft-window))
-  (ceiling (/ (+ (length (get-all-drafted win 'all)) 1)
-              *num-teams*)))
 
 (defun run-draft ()
   (initialize-data)
