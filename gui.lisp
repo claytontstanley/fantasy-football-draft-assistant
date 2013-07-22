@@ -148,7 +148,7 @@
                                            :view-position (make-point x y-off)
                                            :default-item 1
                                            :team-num team-num
-                                           :menu-items (mapcar #'as-menu-item (append nil-picks (sort *pred* #'string-lessp :key #'name)))
+                                           :menu-items (mapcar #'as-menu-item (append nil-picks (sort (copy-list *pred*) #'string-lessp :key #'name)))
                                            :view-size (make-point (* dx 2) 25)
                                            )))))
         (apply #'add-subviews win views)))))
@@ -344,7 +344,7 @@
               (remove-if #'drafted-p
                          (remove-if #'disabled-p
                                     (reduce #'intersection choices)))))
-        (sort filtered-choices #'< :key #'rank)))))
+        (sort (copy-list filtered-choices) #'< :key #'rank)))))
 
 (defmethod drafting-starters-p ((win draft-window))
   (<= (get-draft-round win) *num-starters*))
