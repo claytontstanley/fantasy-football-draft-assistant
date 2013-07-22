@@ -39,6 +39,27 @@
   (with-open-file (strm (format nil "~a~a" *path* "pred.lisp") :direction :output :if-exists :supersede :if-does-not-exist :create)
     (write-readable *pred* strm)))
 
+(defun load-rank-csv (csv)
+  (let ((csv (cl-csv:read-csv (file-string csv))))
+    (assert (equalp (first csv) (list "name" "displayType" "rushYds" "rushTds" "recYds" "recTds" "passYds" "passTds" "fgs0.20" "fgs20.30" "fgs30.40" "fgs40.50" "fgs50.inf" "score" "rank")))
+    (loop for (nil display-type nil nil nil nil nil nil nil nil nil nil nil score rank) in (rest csv)
+          collect (make-instance 'rank-player
+                                 :score (parse-number:parse-number score)
+                                 :display-type (intern (string-upcase display-type))
+                                 :rank rank))))
+
+(defun load-pred-csv (csv)
+  (let ((csv (cl-csv:read-csv (file-string csv))))
+    (assert (equalp (first csv) (list "name" "displayType" "rank" "byWeek")))
+    (guard ((equal
+              (sort (copy-list *all-types*) #'string-lessp)
+              (sort (remove-duplicates (mapcar #'type it1)) #'string-lessp)))
+      (loop for (name display-type nil by-week) in (rest csv)
+            collect (make-instance 'pred-player
+                                   :display-type (intern (string-upcase display-type))
+                                   :name name
+                                   :by-week (parse-integer by-week))))))
+
 (defmethod rank-pred ((pred list) (rank list))
   (let ((pred
           (loop with pred-hash = (make-pred-hash pred)
@@ -81,6 +102,10 @@
    (disabled-p :accessor disabled-p :initarg :disabled-p :initform nil)
    (by-week :accessor by-week :initarg :by-week)))
 
+(defmethod print-pred ((item pred-player) strm)
+  (with-accessors ((name name) (display-type display-type) (rank rank) (score score) (by-week by-week)) item
+    (format strm "~3a|~3a|~2a, ~2a, ~a" rank (floor score) by-week display-type name)))
+
 (defclass rank-player (player)
   ())
 
@@ -93,31 +118,6 @@
   ((display-type :initform 'np)
    (name :initform "")))
 
-(defmethod print-pred ((item pred-player) strm)
-  (with-accessors ((name name) (display-type display-type) (rank rank) (score score) (by-week by-week)) item
-    (format strm "~3a|~3a|~2a, ~2a, ~a" rank (floor score) by-week display-type name)))
-
-(defun load-rank-csv (csv)
-  (let ((csv (cl-csv:read-csv (file-string csv))))
-    (assert (equalp (first csv) (list "name" "displayType" "rushYds" "rushTds" "recYds" "recTds" "passYds" "passTds" "fgs0.20" "fgs20.30" "fgs30.40" "fgs40.50" "fgs50.inf" "score" "rank")))
-    (loop for (nil display-type nil nil nil nil nil nil nil nil nil nil nil score rank) in (rest csv)
-          collect (make-instance 'rank-player
-                                 :score (parse-number:parse-number score)
-                                 :display-type (intern (string-upcase display-type))
-                                 :rank rank))))
-
-(defun load-pred-csv (csv)
-  (let ((csv (cl-csv:read-csv (file-string csv))))
-    (assert (equalp (first csv) (list "name" "displayType" "rank" "byWeek")))
-    (guard ((equal
-              (sort (copy-list *all-types*) #'string-lessp)
-              (sort (remove-duplicates (mapcar #'type it1)) #'string-lessp)))
-      (loop for (name display-type nil by-week) in (rest csv)
-            collect (make-instance 'pred-player
-                                   :display-type (intern (string-upcase display-type))
-                                   :name name
-                                   :by-week (parse-integer by-week))))))
-
 (defclass draft-window (window)
   ()
   (:default-initargs
@@ -129,9 +129,6 @@
 
 (defmethod initialize-instance :after ((win draft-window) &key)
   (add-draft-pick-views win))
-
-(defclass draft-pick-view (menu-view)
-  ((team-num :accessor team-num :initarg :team-num)))
 
 (defmethod add-draft-pick-views ((win draft-window))
   (destructuring-bind (vx vy) (as-list (view-size win))
@@ -163,6 +160,9 @@
           collect (make-instance 'unlisted-player
                                  :display-type type
                                  :name "not present"))))
+
+(defclass draft-pick-view (menu-view)
+  ((team-num :accessor team-num :initarg :team-num)))
 
 (defclass draft-pick-item (menu-item)
   ((pred-player :accessor pred-player :initarg :pred-player)))
@@ -288,6 +288,9 @@
     (mapcar #'disable-choice (selected-contents (view-named :cs win)))
     (update-window win)))
 
+(defmethod disable-choice ((obj pred-player))
+  (setf (disabled-p obj) t))
+
 (defmethod update-window ((win choose-window))
   (display-disabled win)
   (display-choices win))
@@ -303,9 +306,6 @@
 
 (defmethod get-disabled-preds ((obj window))
   (remove-if-not (lambda (pred-player) (disabled-p pred-player)) *pred*))
-
-(defmethod disable-choice ((obj pred-player))
-  (setf (disabled-p obj) t))
 
 (defclass enable-button (button-dialog-item)
   ()
