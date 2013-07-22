@@ -272,10 +272,13 @@
     (update-window win)))
 
 (defmethod update-window ((win choose-window))
+  (display-disabled win)
+  (display-choices win))
+
+(defmethod display-disabled ((win choose-window))
   (set-table-sequence
     (view-named :ds win)
-    (get-disabled-preds win))
-  (display-choices win))
+    (get-disabled-preds win)))
 
 (defmethod selected-contents ((obj sequence-dialog-item))
   (mapcar (lambda (c) (cell-contents obj c))
@@ -441,6 +444,6 @@
 (make-instance 'choose-window)
 
 (make-instance 'draft-window)
-
+(inspect *rank*)
 |#
 
