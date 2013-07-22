@@ -46,10 +46,10 @@
     pred-hash))
 
 (defclass player ()
- ((type :accessor type)
-  (score :accessor score :initarg :score)
-  (rank :accessor rank :initarg :rank)
-  (display-type :accessor display-type :initarg :display-type)))
+  ((type :accessor type)
+   (score :accessor score :initarg :score)
+   (rank :accessor rank :initarg :rank)
+   (display-type :accessor display-type :initarg :display-type)))
 
 (defmethod initialize-instance :after ((player player) &key)
   (assert (not (slot-boundp player 'type)))
