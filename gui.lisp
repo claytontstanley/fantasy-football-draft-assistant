@@ -25,6 +25,12 @@
   (setf *rank* (load-rank-csv *rank-csv*))
   (setf *pred* (rank-pred *pred* *rank*)))
 
+(defun save-data ()
+  (with-open-file (strm (format nil "~a~a" *path* "rank.lisp") :direction :output :if-exists :append :if-does-not-exist :create)
+    (write-readable *rank* strm))
+  (with-open-file (strm (format nil "~a~a" *path* "pred.lisp") :direction :output :if-exists :append :if-does-not-exist :create)
+    (write-readable *pred* strm)))
+     
 (defmethod rank-pred ((pred list) (rank list))
   (let ((pred
           (loop with pred-hash = (make-pred-hash pred)
@@ -438,7 +444,9 @@
                      (member (type rank-player) choice-types))
                    rank)))
 
+
 (initialize-data)
+(save-data)
 
 #|
 (make-instance 'choose-window)
