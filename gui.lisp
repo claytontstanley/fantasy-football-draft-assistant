@@ -3,27 +3,35 @@
      ,@body))
 
 (ql:quickload "cl-csv")
-(ql:quickload "iterate")
 (ql:quickload "parse-number")
 
+(require :ccl-simple-view)
+(require :experiment-window4)
+
+; Don't edit these
 (defparameter *path* (directory-namestring *load-truename*))
+(defparameter *rank* nil)
+(defparameter *pred* nil)
+(defparameter *num-starters* nil) 
+(defparameter *by-weeks* nil)
+
+; Configure these
 (defparameter *rank-csv* (format nil "~a~a" *path* "score-real.csv"))
 (defparameter *pred-csv* (format nil "~a~a" *path* "pred-real.csv"))
 (defparameter *my-team-num* 1)
 (defparameter *all-types* (list 'qb 'rb 'k 'wr 'df))
-(defparameter *num-starters* nil) 
-(defparameter *by-weeks* (list 1 2 3 4 5 6 7 8 9 10))
 (defparameter *num-teams* 3)
 (defparameter *num-drafts* 14)
-(defparameter *rank* nil)
-(defparameter *pred* nil)
 (defparameter *display-font* (list "Courier" 12))
 
 (defun initialize-data ()
   (setf *num-starters* (reduce #'+ (mapcar (lambda (type) (get-num-picks-per-team type t)) *all-types*)))
   (setf *pred* (load-pred-csv *pred-csv*))
   (setf *rank* (load-rank-csv *rank-csv*))
-  (setf *pred* (rank-pred *pred* *rank*)))
+  (setf *pred* (rank-pred *pred* *rank*))
+  (setf *by-weeks* (sort
+                     (remove-duplicates (mapcar #'by-week *pred*))
+                     #'<)))
 
 (defun save-data ()
   (with-open-file (strm (format nil "~a~a" *path* "rank.lisp") :direction :output :if-exists :supersede :if-does-not-exist :create)
@@ -101,11 +109,14 @@
 (defun load-pred-csv (csv)
   (let ((csv (cl-csv:read-csv (file-string csv))))
     (assert (equalp (first csv) (list "name" "displayType" "rank" "byWeek")))
-    (loop for (name display-type nil by-week) in (rest csv)
-          collect (make-instance 'pred-player
-                                 :display-type (intern (string-upcase display-type))
-                                 :name name
-                                 :by-week (parse-integer by-week)))))
+    (guard ((equal
+              (sort *all-types* #'string-lessp)
+              (sort (remove-duplicates (mapcar #'type it1)) #'string-lessp)))
+      (loop for (name display-type nil by-week) in (rest csv)
+            collect (make-instance 'pred-player
+                                   :display-type (intern (string-upcase display-type))
+                                   :name name
+                                   :by-week (parse-integer by-week))))))
 
 (defclass draft-window (window)
   ()
@@ -434,16 +445,13 @@
               *num-teams*)))
 
 (defmethod sort-players ((players list))
-  (sort
-    players
-    (lambda (a b) (< (rank a) (rank b)))))
+  (sort players #'< :key #'rank))
 
 (defmethod get-ranking ((rank list) (choice-types list))
   (sort-players
     (remove-if-not (lambda (rank-player)
                      (member (type rank-player) choice-types))
                    rank)))
-
 
 (initialize-data)
 (save-data)
