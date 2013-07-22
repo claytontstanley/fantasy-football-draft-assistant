@@ -38,7 +38,7 @@
     (write-readable *rank* strm))
   (with-open-file (strm (format nil "~a~a" *path* "pred.lisp") :direction :output :if-exists :supersede :if-does-not-exist :create)
     (write-readable *pred* strm)))
-     
+
 (defmethod rank-pred ((pred list) (rank list))
   (let ((pred
           (loop with pred-hash = (make-pred-hash pred)
@@ -110,7 +110,7 @@
   (let ((csv (cl-csv:read-csv (file-string csv))))
     (assert (equalp (first csv) (list "name" "displayType" "rank" "byWeek")))
     (guard ((equal
-              (sort *all-types* #'string-lessp)
+              (sort (copy-list *all-types*) #'string-lessp)
               (sort (remove-duplicates (mapcar #'type it1)) #'string-lessp)))
       (loop for (name display-type nil by-week) in (rest csv)
             collect (make-instance 'pred-player
@@ -379,10 +379,10 @@
 (defmethod get-num-picks-per-team ((type symbol) (drafting-starters-p (eql nil)))
   (ecase type
     (qb 2)
-    (rb 5) ;+1 on rb, so that both rbs and wrs are present in final draft round
-    (wr 7) ;+1 on wr, so that both rbs and wrs are present in final draft round
+    (rb 4) 
+    (wr 4) 
     (df 2)
-    (k 1)))
+    (k 2)))
 
 (defmethod all-but-mine-picked ((win draft-window) type)
   (let ((num-picks-per-team (get-num-picks-per-team type (drafting-starters-p win))))
@@ -402,12 +402,12 @@
       (loop for type in *all-types*
             collect (rebind (type)
                       (lambda (players)
-                        (let ((filled-by-weeks 
-                                (get-filled-by-weeks
+                        (let ((unfilled-by-weeks 
+                                (get-unfilled-by-weeks
                                   (get-my-drafted draft-win type))))
                           (remove-if (lambda (player)
                                        (and (eq (type player) type)
-                                            (member (by-week player) filled-by-weeks)))
+                                            (member (by-week player) unfilled-by-weeks)))
                                      players))))))))
 
 (defmethod all-by-weeks-filled ((draft-win draft-window))
@@ -429,6 +429,9 @@
             for avail-players = (remove-if (lambda (player)
                                              (= (by-week player) by-week)) players)
             when (>= (length avail-players) (get-num-picks-per-team type t)) collect by-week))))
+
+(defmethod get-unfilled-by-weeks ((players list))
+  (set-difference *by-weeks* (get-filled-by-weeks players)))
 
 (defmethod free-pick-vail ((win draft-window))
   (notevery (lambda (type)
@@ -458,8 +461,6 @@
 
 #|
 (make-instance 'choose-window)
-
 (make-instance 'draft-window)
-(inspect *rank*)
 |#
 
