@@ -26,9 +26,9 @@
   (setf *pred* (rank-pred *pred* *rank*)))
 
 (defun save-data ()
-  (with-open-file (strm (format nil "~a~a" *path* "rank.lisp") :direction :output :if-exists :append :if-does-not-exist :create)
+  (with-open-file (strm (format nil "~a~a" *path* "rank.lisp") :direction :output :if-exists :supersede :if-does-not-exist :create)
     (write-readable *rank* strm))
-  (with-open-file (strm (format nil "~a~a" *path* "pred.lisp") :direction :output :if-exists :append :if-does-not-exist :create)
+  (with-open-file (strm (format nil "~a~a" *path* "pred.lisp") :direction :output :if-exists :supersede :if-does-not-exist :create)
     (write-readable *pred* strm)))
      
 (defmethod rank-pred ((pred list) (rank list))
