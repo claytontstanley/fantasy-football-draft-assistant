@@ -140,7 +140,7 @@
                                            :view-position (make-point x y-off)
                                            :default-item 1
                                            :team-num team-num
-                                           :menu-items (mapcar #'as-menu-item (append nil-picks *pred*))
+                                           :menu-items (mapcar #'as-menu-item (append nil-picks (sort *pred* #'string-lessp :key #'name)))
                                            :view-size (make-point (* dx 2) 25)
                                            )))))
         (apply #'add-subviews win views)))))
