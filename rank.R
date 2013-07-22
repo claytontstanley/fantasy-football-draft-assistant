@@ -4,7 +4,7 @@ library(plyr)
 
 generateScore = function() {
 	histFrm = read.csv(str_c(PATH, "/hist-real.csv"))
-	histFrm$score = with(histFrm, rushYds/10 + rushTds*6 + recYds/10 + recTds*6 + passYds/25 + passTds*4 + fgs0.20*3 + fgs20.30*3 + fgs30.40*4 + fgs40.50*5 + fgs50.inf*6)
+	histFrm$score = with(histFrm, rushYds/10 + rushTds*6 + recYds/10 + recTds*6 + passYds/25 + passTds*3 + fgs0.20*3 + fgs20.30*3 + fgs30.40*3 + fgs40.50*4 + fgs50.inf*5)
 	myKScores = as.integer(as.character(histFrm$score[histFrm$displayType=='k']))
 	histFrm = rbind.fill(histFrm, generateDfs(myKScores))
 	histFrm = histFrm[with(histFrm, order(-score)),]
