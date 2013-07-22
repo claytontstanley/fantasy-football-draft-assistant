@@ -3,18 +3,12 @@ library(stringr)
 library(plyr)
 
 generateScore = function() {
-	
 	histFrm = read.csv(str_c(PATH, "/hist-real.csv"))
-
 	histFrm$score = with(histFrm, rushYds/10 + rushTds*6 + recYds/10 + recTds*6 + passYds/25 + passTds*4 + fgs0.20*3 + fgs20.30*3 + fgs30.40*4 + fgs40.50*5 + fgs50.inf*6)
-	
-	histFrm = rbind.fill(histFrm, generateDfs())
-	
+	myKScores = as.integer(as.character(histFrm$score[histFrm$displayType=='k']))
+	histFrm = rbind.fill(histFrm, generateDfs(myKScores))
 	histFrm = histFrm[with(histFrm, order(-score)),]
 	histFrm$rank = 1:length(histFrm$score)
-
-	histFrm
-
 	write.csv(histFrm, str_c(PATH, "/score-real.csv"), row.names=F)
 }
 
@@ -24,13 +18,12 @@ generateScore = function() {
 # the kicker scores generated from historical data. That is, the df scores are recalibrated to match the scoring system
 # used for our league. A simple linear regression was used to recalibrate, as plotting the kicker scores showed a highly linear trend
 
-generateDfs = function() {
+generateDfs = function(myKScores) {
 	dfFrm = read.csv(str_c(PATH, "/hist-dfs.csv"))
 	dfKFrm = read.csv(str_c(PATH, "/hist-dfs-kscoring.csv"))
-	scoreFrm = read.csv(str_c(PATH, "/score-real.csv"))
-	scoreFrm = subset(scoreFrm, displayType=='k')
 	theirKScores = as.integer(as.character(dfKFrm$PTS))
-	myKScores = as.integer(as.character(scoreFrm$score))
+	myKScores = sort(myKScores, decreasing=T)
+	theirKScores = sort(theirKScores, decreasing=T)
 	res = lm(myKScores[1:length(theirKScores)]~theirKScores)
 	mA = res$coefficients[['(Intercept)']]
 	mB = res$coefficients[['theirKScores']]
@@ -72,5 +65,4 @@ generatePred = function() {
 	
 generateHist()
 generateScore()
-generateScore() # Do a second time to bootstrap proper defense scores
 generatePred()

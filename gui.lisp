@@ -231,7 +231,7 @@
   ()
   (:default-initargs
     :view-size (make-point 1024 768)
-    :view-position (make-point 0 0)))
+    :view-position (list :right 0)))
 
 (defmethod initialize-instance :after ((win choose-window) &key)
   (add-subviews
