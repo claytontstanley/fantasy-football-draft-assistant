@@ -118,7 +118,7 @@
   ((display-type :initform 'np)
    (name :initform "")))
 
-(defclass draft-window (window)
+(defclass draft-window (borderless-window)
   ()
   (:default-initargs
     :view-size (make-point 1680 1050)
@@ -450,10 +450,12 @@
 (defun run-draft ()
   (initialize-data)
   (save-data)
+  (hide-menubar)
   (make-instance 'choose-window)
   (make-instance 'draft-window))
 
 #|
 (run-draft)
+(window-close (get-draft-win))
 |#
 
