@@ -42,14 +42,14 @@ generateHist = function() {
 	teFrm = read.csv(str_c(PATH, "/hist-tes.csv"))
 	teHistFrm = with(teFrm, data.frame(name=Name, displayType='te', recYds=Yds, recTds=TD+TD.1))
 	
-    histFrm = rbind.fill(rbHistFrm, qbHistFrm, kHistFrm, wrHistFrm, teHistFrm)
-    histFrm = modifyList(histFrm, lapply(histFrm[,c('name', 'displayType')], function(x) as.character(x)))
-    convertFGCol = function(x) as.integer(str_extract(as.character(x), '^[0-9]'))
-    histFrm = modifyList(histFrm, lapply(histFrm[,c('fgs0.20', 'fgs20.30', 'fgs30.40', 'fgs40.50', 'fgs50.inf')], convertFGCol))
-    # converts all factors to numeric: http://stackoverflow.com/questions/8596466
-    histFrm = modifyList(histFrm, lapply(histFrm[, sapply(histFrm, is.factor)], function(x) as.numeric(as.character(x))))
-    histFrm[is.na(histFrm)] = 0
-    foo = histFrm
+	histFrm = rbind.fill(rbHistFrm, qbHistFrm, kHistFrm, wrHistFrm, teHistFrm)
+	histFrm = modifyList(histFrm, lapply(histFrm[,c('name', 'displayType')], function(x) as.character(x)))
+	convertFGCol = function(x) as.integer(str_extract(as.character(x), '^[0-9]'))
+	histFrm = modifyList(histFrm, lapply(histFrm[,c('fgs0.20', 'fgs20.30', 'fgs30.40', 'fgs40.50', 'fgs50.inf')], convertFGCol))
+	# converts all factors to numeric: http://stackoverflow.com/questions/8596466
+	histFrm = modifyList(histFrm, lapply(histFrm[, sapply(histFrm, is.factor)], function(x) as.numeric(as.character(x))))
+	histFrm[is.na(histFrm)] = 0
+	foo = histFrm
 	write.csv(histFrm, str_c(PATH, "/hist-real.csv"), row.names=F)
 }
 
