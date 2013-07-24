@@ -49,7 +49,6 @@ generateHist = function() {
 	# converts all factors to numeric: http://stackoverflow.com/questions/8596466
 	histFrm = modifyList(histFrm, lapply(histFrm[, sapply(histFrm, is.factor)], function(x) as.numeric(as.character(x))))
 	histFrm[is.na(histFrm)] = 0
-	foo = histFrm
 	write.csv(histFrm, str_c(PATH, "/hist-real.csv"), row.names=F)
 }
 
