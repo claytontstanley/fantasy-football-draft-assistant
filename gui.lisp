@@ -2,8 +2,8 @@
   `(let ,(mapcar #'list vars vars)
      ,@body))
 
-(ql:quickload "cl-csv")
-(ql:quickload "parse-number")
+(require :cl-csv)
+(require :parse-number)
 (require :ccl-simple-view)
 (require :experiment-window4)
 
