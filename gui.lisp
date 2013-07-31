@@ -250,7 +250,6 @@
   ()
   (:default-initargs
     :view-size (make-point (/ 1024 3) 768)
-    :table-sequence ()
     :table-print-function #'print-pred
     :view-nick-name :cs
     :view-position (make-point 0 0)))
@@ -259,7 +258,6 @@
   ()
   (:default-initargs
     :view-size (make-point (/ 1024 3) 768)
-    :table-sequence ()
     :table-print-function #'print-pred
     :view-nick-name :ds
     :view-position (make-point (* 1024 2/3) 0)))
