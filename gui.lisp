@@ -19,7 +19,7 @@
 (defparameter *pred-csv* (format nil "~a~a" *path* "pred-real.csv"))
 (defparameter *my-team-num* 1)
 (defparameter *all-types* (list 'qb 'rb 'k 'wr 'df))
-(defparameter *num-teams* 15)
+(defparameter *num-teams* 2)
 (defparameter *num-drafts* 14)
 (defparameter *display-font* (list "Courier" 12))
 
@@ -162,10 +162,12 @@
                                  :name "not present"))))
 
 (defclass draft-pick-view (menu-view)
-  ((team-num :accessor team-num :initarg :team-num)))
+  ((team-num :accessor team-num :initarg :team-num))
+  (:default-initargs :view-font *display-font*))
 
 (defclass draft-pick-item (menu-item)
-  ((pred-player :accessor pred-player :initarg :pred-player)))
+  ((pred-player :accessor pred-player :initarg :pred-player))
+  (:default-initargs :view-font *display-font*))
 
 (defmethod as-menu-item ((item pred-player))
   (make-instance
@@ -173,20 +175,6 @@
     :pred-player item
     :menu-item-title (print-pred item nil)
     :action (lambda () (update-window (get-draft-win)))))
-
-; Using #/setFont: does not update the font for the chosen item in the menu view, so the more
-; complex setAttributedTitle: method is used instead: http://stackoverflow.com/questions/13458963/how-to-set-the-font-of-nsmenu-nsmenuitems
-; This method shows the correct font for all of them menu items contained in the view
-(defmethod initialize-instance :after ((item draft-pick-item) &key)
-  (let ((attributes (#/dictionaryWithObjectsAndKeys: ns:ns-mutable-dictionary
-                     (getf (parse-mcl-initarg :view-font *display-font*) :view-font) #$NSFontAttributeName
-                     ccl:+null-ptr+)))
-    (let ((attributed-title
-            (#/initWithString:attributes: (#/alloc ns:ns-mutable-attributed-string)
-             (#/title (cocoa-ref item))
-             attributes)))
-      (#/setAttributedTitle: (cocoa-ref item)
-       attributed-title))))
 
 (defmethod update-window ((win draft-window))
   (dolist (player *pred*)
