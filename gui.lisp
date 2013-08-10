@@ -141,7 +141,7 @@
                     append (loop for i from 0 below *num-drafts*
                                  for x = (* i dx)
                                  for y-off = (+ y 
-                                                (* (mod i 2) 30))
+                                                (* (mod i 2) 23))
                                  with nil-picks = (make-nil-picks)
                                  collect (make-instance
                                            'draft-pick-view
