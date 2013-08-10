@@ -19,7 +19,7 @@
 (defparameter *pred-csv* (format nil "~a~a" *path* "pred-real.csv"))
 (defparameter *my-team-num* 1)
 (defparameter *all-types* (list 'qb 'rb 'k 'wr 'df))
-(defparameter *num-teams* 2)
+(defparameter *num-teams* 16)
 (defparameter *num-drafts* 14)
 (defparameter *display-font* (list "Courier" 12))
 
